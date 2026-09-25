@@ -1,59 +1,169 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SAMS — Student Attendance Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A web-based **Student Attendance Management System** built with **Laravel 12** (PHP) and **Tailwind CSS**. SAMS lets administrators manage batches, subjects, students, lecturers, and timetables, while lecturers mark and review attendance for their assigned subjects.
 
-## About Laravel
+## Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+SAMS has two role-based portals, protected by dedicated middleware:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Admin** — full management of batches, subjects, students, lecturers, and timetables; bulk import via Excel; PDF attendance reports; alerts dashboard.
+- **Lecturer** — views their timetable, marks attendance for their subjects, and reviews attendance history/sessions.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Authentication is handled via **Laravel Breeze**.
 
-## Learning Laravel
+## Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Role-based access control** (`admin` / `lecturer`) enforced via `AdminMiddleware` and `LecturerMiddleware`.
+- **Batch management** — create and manage student batches/cohorts.
+- **Subject management** — create subjects, assign lecturers, lock/unlock subjects (locking prevents further attendance edits), and bulk-import subjects from Excel (with a downloadable template).
+- **Student management** — full CRUD plus bulk import from Excel (with a downloadable template).
+- **Lecturer management** — full CRUD plus bulk import from Excel (with a downloadable template).
+- **Timetable builder** — create timetables per batch/semester with day-by-day slots, including continuation slots and a printable timetable view.
+- **Attendance marking** — lecturers record Present / Absent / Late for each student, once per subject per day; attendance for a locked subject is blocked.
+- **Attendance history** — lecturers can view and edit past attendance sessions (with an edit-reason field for auditability).
+- **Attendance percentage calculation** — per-student, per-subject attendance percentage.
+- **Reports** — admin can generate **PDF attendance reports** per subject (via `barryvdh/laravel-dompdf`).
+- **Alerts dashboard** for the admin (e.g. flagging low attendance or other conditions).
+- **Excel import/export** support via `maatwebsite/excel` and `phpoffice/phpspreadsheet`.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Tech Stack
 
-## Laravel Sponsors
+- **Backend:** PHP 8.2+, Laravel 12
+- **Frontend:** Blade templates, Tailwind CSS 3, Alpine.js, Vite
+- **Auth:** Laravel Breeze
+- **PDF generation:** barryvdh/laravel-dompdf
+- **Excel import/export:** maatwebsite/excel, phpoffice/phpspreadsheet
+- **Database:** SQLite by default (see `.env.example`); easily switched to MySQL
+- **Testing:** PHPUnit
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Project Structure
 
-### Premium Partners
+```
+sams/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Admin/        # Batches, Subjects, Students, Lecturers, Reports, Timetables, Dashboard
+│   │   │   ├── Lecturer/     # Dashboard, Timetable, Attendance
+│   │   │   └── Auth/         # Laravel Breeze auth controllers
+│   │   ├── Middleware/       # AdminMiddleware, LecturerMiddleware
+│   │   └── Requests/
+│   ├── Imports/              # Excel import classes (Students, Lecturers, Subjects)
+│   ├── Models/                # Attendance, Batch, Session, Student, Subject, Timetable, TimetableSlot, User
+│   └── View/Components/
+├── database/
+│   ├── migrations/
+│   └── seeders/               # AdminSeeder creates a default admin account
+├── resources/                   # Blade views, CSS, JS
+├── routes/
+│   └── web.php                    # Admin & Lecturer route groups
+├── public/
+├── composer.json
+├── package.json
+└── vite.config.js
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Data Model
 
-## Contributing
+- **Batch** — has many Subjects and Students.
+- **Subject** — belongs to a Batch and a lecturer (`User`); has many Sessions; can be locked.
+- **Student** — belongs to a Batch; has many Attendance records.
+- **Session** — belongs to a Subject; represents one attendance-taking event (a date); has many Attendance records.
+- **Attendance** — belongs to a Session and a Student; status is Present / Absent / Late.
+- **Timetable** — belongs to a Batch; has many TimetableSlots.
+- **TimetableSlot** — belongs to a Timetable and a Subject; represents a day/time slot (supports continuation slots).
+- **User** — has a `role` (`admin` or `lecturer`); a lecturer `hasMany` Subjects.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Requirements
 
-## Code of Conduct
+- PHP 8.2+
+- Composer
+- Node.js and npm
+- SQLite (default) or MySQL/another Laravel-supported database
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Installation
 
-## Security Vulnerabilities
+```bash
+git clone <repository-url>
+cd sams
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Install PHP dependencies
+composer install
+
+# Install JS dependencies
+npm install
+
+# Environment setup
+cp .env.example .env
+php artisan key:generate
+
+# Database (SQLite is the default — create the file if needed)
+touch database/database.sqlite
+
+# Run migrations and seed the default admin account
+php artisan migrate --seed
+
+# Build frontend assets
+npm run build
+```
+
+Alternatively, the project defines a single composer script that does most of this for you:
+
+```bash
+composer run setup
+```
+
+### Running the app in development
+
+```bash
+composer run dev
+```
+
+This starts the PHP dev server, the queue listener, log tailing (`pail`), and the Vite dev server together. Or run them individually:
+
+```bash
+php artisan serve
+npm run dev
+```
+
+The app will be available at `http://localhost:8000` (or whichever port `artisan serve` reports).
+
+## Default Admin Login
+
+The `AdminSeeder` creates a default administrator account:
+
+```
+Email:    admin@sams.lk
+Password: admin123
+```
+
+> Change this password immediately in any real deployment.
+
+Lecturer accounts are created by the admin through the Lecturers management screen (or via the Excel import feature).
+
+## Using MySQL instead of SQLite
+
+Update `.env`:
+
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sams
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Then create the `sams` database in MySQL and run `php artisan migrate --seed`.
+
+## Testing
+
+```bash
+composer run test
+# or
+php artisan test
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+No license specified in the project (the base Laravel framework itself is MIT-licensed).
